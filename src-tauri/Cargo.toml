@@ -1,6 +1,6 @@
 [package]
 name = "sift"
-version = "0.1.0-alpha.0"
+version = "0.1.0"
 description = "Open-source desktop photo culling app"
 authors = ["Sift contributors"]
 license = "MIT"
