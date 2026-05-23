@@ -1,9 +1,9 @@
 [package]
 name = "sift"
-version = "0.1.0"
-description = "Open-source desktop photo culling app"
+version = "0.1.1"
+description = "Source-available noncommercial desktop photo culling app"
 authors = ["Sift contributors"]
-license = "MIT"
+license-file = "../LICENSE"
 repository = "https://github.com/chencn2020/Sift"
 edition = "2021"
 

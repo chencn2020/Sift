@@ -269,7 +269,7 @@ export function SettingsModal({
                   GitHub
                 </a>
                 <a href="https://github.com/chencn2020/Sift/blob/main/LICENSE" target="_blank" rel="noreferrer">
-                  MIT
+                  PolyForm NC
                 </a>
               </div>
             </>

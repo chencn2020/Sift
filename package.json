@@ -1,10 +1,10 @@
 {
   "name": "sift",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": false,
-  "description": "Open-source desktop photo culling app for event photographers.",
+  "description": "Source-available noncommercial desktop photo culling app for event photographers.",
   "type": "module",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

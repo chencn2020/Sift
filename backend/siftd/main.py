@@ -31,7 +31,7 @@ class ExportPayload(BaseModel):
 
 
 def create_app(db_path: Path, token: str, allow_cloud_ai: bool = False) -> FastAPI:
-    app = FastAPI(title="Sift local sidecar", version="0.1.0-alpha.0")
+    app = FastAPI(title="Sift local sidecar", version="0.1.0-alpha.2")
     store = SiftStore(db_path)
     store.initialize()
     queue = InMemoryJobQueue()

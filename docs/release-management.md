@@ -15,6 +15,10 @@ usable together.
 
 ## Public Prerelease
 
-Use tags like `v0.1.0-alpha.1`. Tagged builds create GitHub prereleases and
+Use tags like `v0.1.0-alpha.2`. Tagged builds create GitHub prereleases and
 attach packaged desktop installers. Auto-update remains disabled until signing,
 notarization, and update signature keys are configured.
+
+`v0.1.0-alpha.1` was withdrawn because it was published with incorrect MIT
+license metadata. Future public prereleases use the repository's noncommercial
+source-available licensing policy.
