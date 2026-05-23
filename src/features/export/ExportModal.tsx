@@ -22,14 +22,16 @@ export function ExportModal({ open, state, t, onClose, onExport }: ExportModalPr
   });
   const selected = state.photos.filter((photo) => photo.state === "pick");
   const count = selected.length || state.photos.length;
+  const firstPhoto = selected[0] ?? state.photos[0];
   const preview = useMemo(() => {
-    const ext = options.format === "original" ? "CR3" : options.format;
+    const ext = options.format === "original" ? firstPhoto?.format || "original" : options.format;
+    const baseName = firstPhoto?.filename.replace(/\.[^.]+$/, "") || "sift-export";
     return options.namingTemplate
-      .replace("{date}", "2026-05-12")
-      .replace("{event}", "event")
+      .replace("{date}", new Date().toISOString().slice(0, 10))
+      .replace("{event}", baseName)
       .replace("{seq}", "001")
       .concat(`.${ext}`);
-  }, [options.format, options.namingTemplate]);
+  }, [firstPhoto?.filename, options.format, options.namingTemplate]);
 
   return (
     <Modal
@@ -101,7 +103,9 @@ export function ExportModal({ open, state, t, onClose, onExport }: ExportModalPr
           <option value="tag">tag</option>
         </select>
       </div>
-      <div className="exp-summary">{count} files · estimated local export job</div>
+      <div className="exp-summary">
+        {count} {t("photos")} · {t("exportManifestHint")}
+      </div>
     </Modal>
   );
 }

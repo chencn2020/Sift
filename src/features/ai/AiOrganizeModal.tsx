@@ -8,12 +8,20 @@ interface AiOrganizeModalProps {
   t: (key: string) => string;
   onClose: () => void;
   onApply: () => void;
+  onRuleChange: (rule: keyof AppState["aiRules"], enabled: boolean) => void;
 }
 
-export function AiOrganizeModal({ open, state, t, onClose, onApply }: AiOrganizeModalProps) {
+export function AiOrganizeModal({ open, state, t, onClose, onApply, onRuleChange }: AiOrganizeModalProps) {
   const changes = planAiChanges(state);
+  const analyzed = state.photos.filter((photo) => photo.analyzed);
   const picks = changes.filter((change) => change.state === "pick").length;
   const rejects = changes.filter((change) => change.state === "reject").length;
+  const blurCount = analyzed.filter((photo) => photo.sharpness < 0.55).length;
+  const closedEyesCount = analyzed.filter((photo) => photo.eyesClosed).length;
+  const burstCount = new Set(state.photos.map((photo) => photo.burstId).filter(Boolean)).size;
+  const duplicateCount = new Set(state.photos.map((photo) => photo.duplicateGroupId).filter(Boolean)).size;
+  const highRatedCount = state.photos.filter((photo) => photo.rating >= 4).length;
+  const canApply = changes.length > 0;
 
   return (
     <Modal
@@ -24,44 +32,79 @@ export function AiOrganizeModal({ open, state, t, onClose, onApply }: AiOrganize
       footer={
         <>
           <button className="btn-ghost" onClick={onClose}>
-            取消
+            {t("cancel")}
           </button>
-          <button className="btn-primary" onClick={onApply}>
-            应用整理
+          <button className="btn-primary" disabled={!canApply} onClick={onApply}>
+            {t("apply")}
           </button>
         </>
       }
     >
       <div className="ai-intro">
-        <h3>一键智能筛选</h3>
+        <h3>{t("smartCulling")}</h3>
         <p>
-          将分析当前项目的 <b>{state.photos.length}</b> 张照片，并按规则应用到本地元数据。
+          {analyzed.length.toLocaleString()} / {state.photos.length.toLocaleString()} {t("photos")} {t("analyzed")}
         </p>
       </div>
       <div className="ai-rules">
-        <Rule checked label="保留每组连拍中 AI 评分最高的一张" count="12 组连拍" />
-        <Rule checked label="弃掉所有闭眼照片" count="约 8 张" />
-        <Rule checked label="弃掉极度模糊的照片" count="清晰度 < 0.55" />
-        <Rule label="弃掉重复照片，保留最锐利的一张" count="31 组" />
-        <Rule label="保留所有星标 ≥ 4 的照片" count="14 张" />
+        <Rule
+          checked={state.aiRules.bestOfBurst}
+          label={t("ruleBestOfBurst")}
+          count={`${burstCount}`}
+          onChange={(enabled) => onRuleChange("bestOfBurst", enabled)}
+        />
+        <Rule
+          checked={state.aiRules.rejectEyesClosed}
+          label={t("ruleRejectEyesClosed")}
+          count={`${closedEyesCount}`}
+          onChange={(enabled) => onRuleChange("rejectEyesClosed", enabled)}
+        />
+        <Rule
+          checked={state.aiRules.rejectBlurry}
+          label={t("ruleRejectBlurry")}
+          count={`${blurCount}`}
+          onChange={(enabled) => onRuleChange("rejectBlurry", enabled)}
+        />
+        <Rule
+          checked={state.aiRules.rejectDuplicates}
+          label={t("ruleRejectDuplicates")}
+          count={`${duplicateCount}`}
+          onChange={(enabled) => onRuleChange("rejectDuplicates", enabled)}
+        />
+        <Rule
+          checked={state.aiRules.pickHighRated}
+          label={t("rulePickHighRated")}
+          count={`${highRatedCount}`}
+          onChange={(enabled) => onRuleChange("pickHighRated", enabled)}
+        />
       </div>
       <div className="ai-summary">
         <span>
-          预计选中 <b>{picks}</b>
+          {t("pick")} <b>{picks}</b>
         </span>
         <span>
-          预计弃掉 <b>{rejects}</b>
+          {t("reject")} <b>{rejects}</b>
         </span>
-        <span>{t("analysisReady")}</span>
+        <span>{canApply ? t("readyToApply") : t("nothingToApply")}</span>
       </div>
     </Modal>
   );
 }
 
-function Rule({ checked, label, count }: { checked?: boolean; label: string; count: string }) {
+function Rule({
+  checked,
+  label,
+  count,
+  onChange
+}: {
+  checked: boolean;
+  label: string;
+  count: string;
+  onChange: (enabled: boolean) => void;
+}) {
   return (
     <label className="ai-rule">
-      <input type="checkbox" defaultChecked={checked} />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.currentTarget.checked)} />
       <span>{label}</span>
       <em>{count}</em>
     </label>

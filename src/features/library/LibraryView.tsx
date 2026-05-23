@@ -4,7 +4,7 @@ import { Inspector } from "./Inspector";
 import { LibrarySidebar } from "./LibrarySidebar";
 import { photoCounts } from "./photoRules";
 import { PhotoCard } from "./PhotoCard";
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 interface LibraryViewProps {
   state: AppState;
@@ -13,6 +13,7 @@ interface LibraryViewProps {
   onToggleFilter: (filter: string) => void;
   onPersonSelect: (personId: string | null) => void;
   onOpenPeople: () => void;
+  onOpenRegisterPerson: () => void;
   onSelectPhoto: (photoId: number) => void;
   onOpenPhoto: (photoId: number) => void;
 }
@@ -24,12 +25,85 @@ export function LibraryView({
   onToggleFilter,
   onPersonSelect,
   onOpenPeople,
+  onOpenRegisterPerson,
   onSelectPhoto,
   onOpenPhoto
 }: LibraryViewProps) {
-  const counts = photoCounts(state.photos);
-  const photos = visiblePhotos(state);
-  const selectedPhoto = state.photos.find((photo) => photo.id === state.selectedPhotoId) ?? null;
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const [viewport, setViewport] = useState({ scrollTop: 0, height: 0, width: 0 });
+  const counts = useMemo(() => photoCounts(state.photos), [state.photos]);
+  const photos = useMemo(
+    () => visiblePhotos(state),
+    [state.photos, state.collection, state.filters, state.selectedPersonId]
+  );
+  const selectedPhoto = useMemo(
+    () => state.photos.find((photo) => photo.id === state.selectedPhotoId) ?? null,
+    [state.photos, state.selectedPhotoId]
+  );
+  const virtualGrid = useVirtualGrid({
+    photoCount: photos.length,
+    scrollTop: viewport.scrollTop,
+    viewportHeight: viewport.height,
+    viewportWidth: viewport.width,
+    minThumbSize: state.thumbSize
+  });
+  const renderedPhotos = useMemo(
+    () => photos.slice(virtualGrid.startIndex, virtualGrid.endIndex),
+    [photos, virtualGrid.endIndex, virtualGrid.startIndex]
+  );
+
+  useEffect(() => {
+    const scroller = gridScrollRef.current;
+    if (!scroller) return undefined;
+
+    const updateViewport = () => {
+      if (scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        setViewport({
+          scrollTop: scroller.scrollTop,
+          height: scroller.clientHeight,
+          width: scroller.clientWidth
+        });
+      });
+    };
+
+    const updateViewportNow = () => {
+      setViewport({
+        scrollTop: scroller.scrollTop,
+        height: scroller.clientHeight,
+        width: scroller.clientWidth
+      });
+    };
+
+    updateViewportNow();
+    const resizeObserver = new ResizeObserver(updateViewportNow);
+    resizeObserver.observe(scroller);
+    scroller.addEventListener("scroll", updateViewport, { passive: true });
+
+    return () => {
+      if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
+      resizeObserver.disconnect();
+      scroller.removeEventListener("scroll", updateViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    const scroller = gridScrollRef.current;
+    if (!scroller || state.selectedPhotoId == null) return;
+    const selectedIndex = photos.findIndex((photo) => photo.id === state.selectedPhotoId);
+    if (selectedIndex < 0) return;
+
+    const selectedRow = Math.floor(selectedIndex / virtualGrid.columns);
+    const rowTop = selectedRow * virtualGrid.rowStride;
+    const rowBottom = rowTop + virtualGrid.rowHeight;
+    if (rowTop < scroller.scrollTop) {
+      scroller.scrollTop = rowTop;
+    } else if (rowBottom > scroller.scrollTop + scroller.clientHeight) {
+      scroller.scrollTop = rowBottom - scroller.clientHeight;
+    }
+  }, [photos, state.selectedPhotoId, virtualGrid.columns, virtualGrid.rowHeight, virtualGrid.rowStride]);
 
   return (
     <section className="view active" data-view="library">
@@ -45,6 +119,7 @@ export function LibraryView({
           onCollectionChange={onCollectionChange}
           onPersonSelect={onPersonSelect}
           onOpenPeople={onOpenPeople}
+          onOpenRegisterPerson={onOpenRegisterPerson}
         />
 
         <div className="lib-content">
@@ -65,9 +140,19 @@ export function LibraryView({
             </div>
           </div>
 
-          <div className="grid-scroll" id="grid-scroll">
-            <div className="photo-grid" id="photo-grid" style={{ "--thumb-size": `${state.thumbSize}px` } as CSSProperties}>
-              {photos.map((photo) => (
+          <div className="grid-scroll" id="grid-scroll" ref={gridScrollRef}>
+            <div
+              className="photo-grid"
+              id="photo-grid"
+              style={
+                {
+                  "--thumb-size": `${state.thumbSize}px`,
+                  gridTemplateColumns: `repeat(${virtualGrid.columns}, minmax(0, 1fr))`
+                } as CSSProperties
+              }
+            >
+              {virtualGrid.topSpacerHeight > 0 ? <div className="grid-spacer" style={{ height: virtualGrid.topSpacerHeight }} /> : null}
+              {renderedPhotos.map((photo) => (
                 <PhotoCard
                   key={photo.id}
                   photo={photo}
@@ -76,6 +161,7 @@ export function LibraryView({
                   onOpen={onOpenPhoto}
                 />
               ))}
+              {virtualGrid.bottomSpacerHeight > 0 ? <div className="grid-spacer" style={{ height: virtualGrid.bottomSpacerHeight }} /> : null}
             </div>
           </div>
         </div>
@@ -84,6 +170,43 @@ export function LibraryView({
       </div>
     </section>
   );
+}
+
+function useVirtualGrid({
+  photoCount,
+  scrollTop,
+  viewportHeight,
+  viewportWidth,
+  minThumbSize
+}: {
+  photoCount: number;
+  scrollTop: number;
+  viewportHeight: number;
+  viewportWidth: number;
+  minThumbSize: number;
+}) {
+  const gap = 6;
+  const safeWidth = Math.max(minThumbSize, viewportWidth);
+  const columns = Math.max(1, Math.floor((safeWidth + gap) / (minThumbSize + gap)));
+  const cellWidth = Math.max(minThumbSize, (safeWidth - gap * (columns - 1)) / columns);
+  const rowHeight = Math.ceil((cellWidth * 2) / 3 + 34);
+  const rowStride = rowHeight + gap;
+  const rowCount = Math.ceil(photoCount / columns);
+  const overscanRows = 2;
+  const startRow = Math.max(0, Math.floor(scrollTop / rowStride) - overscanRows);
+  const endRow = Math.min(rowCount, Math.ceil((scrollTop + viewportHeight) / rowStride) + overscanRows);
+  const startIndex = startRow * columns;
+  const endIndex = Math.min(photoCount, endRow * columns);
+
+  return {
+    columns,
+    rowHeight,
+    rowStride,
+    startIndex,
+    endIndex,
+    topSpacerHeight: startRow * rowStride,
+    bottomSpacerHeight: Math.max(0, (rowCount - endRow) * rowStride)
+  };
 }
 
 function Tab({ active, label, count, onClick }: { active: boolean; label: string; count: number; onClick: () => void }) {

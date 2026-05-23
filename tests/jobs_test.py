@@ -7,7 +7,7 @@ from backend.sift_core.jobs import InMemoryJobQueue
 class JobsTest(unittest.TestCase):
     def test_job_queue_completes_task(self):
         queue = InMemoryJobQueue()
-        job = queue.submit("demo", lambda running_job: {"job": running_job.id})
+        job = queue.submit("analysis", lambda running_job: {"job": running_job.id})
 
         for _ in range(50):
             current = queue.get(job.id)

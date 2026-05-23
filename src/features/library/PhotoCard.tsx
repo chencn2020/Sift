@@ -1,7 +1,8 @@
-import { photoGradient } from "../../app/mockData";
 import type { PhotoSummary } from "../../app/types";
 import { rejectReasons } from "./photoRules";
 import type { CSSProperties } from "react";
+import { memo } from "react";
+import { PhotoImage } from "./PhotoImage";
 
 interface PhotoCardProps {
   photo: PhotoSummary;
@@ -11,21 +12,23 @@ interface PhotoCardProps {
   onOpen?: (photoId: number) => void;
 }
 
-export function PhotoCard({ photo, selected, thumbSize, onSelect, onOpen }: PhotoCardProps) {
+export const PhotoCard = memo(function PhotoCard({ photo, selected, thumbSize, onSelect, onOpen }: PhotoCardProps) {
   const reasons = rejectReasons(photo);
   return (
     <button
       className={`photo-card ${selected ? "selected" : ""} ${photo.state === "pick" ? "is-pick" : ""} ${
         photo.state === "reject" ? "is-reject" : ""
       }`}
+      data-photo-id={photo.id}
+      aria-pressed={selected}
+      tabIndex={-1}
       style={thumbSize ? ({ "--thumb-size": `${thumbSize}px` } as CSSProperties) : undefined}
+      onMouseDown={(event) => event.preventDefault()}
       onClick={() => onSelect(photo.id)}
       onDoubleClick={() => onOpen?.(photo.id)}
     >
       <div className="photo-thumb">
-        <div className="photo-art" style={{ background: photoGradient(photo) }}>
-          <span>{photo.filename.slice(4, 8)}</span>
-        </div>
+        <PhotoImage photo={photo} className="photo-art" />
         {photo.state === "pick" ? <span className="flag pick">✓</span> : null}
         {photo.state === "reject" ? <span className="flag reject">×</span> : null}
         {photo.burstId ? <span className="stack-badge">▤</span> : null}
@@ -37,4 +40,4 @@ export function PhotoCard({ photo, selected, thumbSize, onSelect, onOpen }: Phot
       {photo.state === "reject" && reasons.length > 0 ? <div className="reject-reasons">{reasons.join(" · ")}</div> : null}
     </button>
   );
-}
+});

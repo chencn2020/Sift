@@ -11,10 +11,15 @@ node_modules/
 dist/
 build/
 coverage/
+artifacts/
 src-tauri/target/
+src-tauri/gen/
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
 *.db
 *.sqlite
 *.sqlite3
 *.log
+
+# Local-only Codex project guidance. Keep this on the machine, not in Git.
+AGENTS.md

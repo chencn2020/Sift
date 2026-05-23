@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { DragEvent, ReactNode } from "react";
 
 interface ModalProps {
   title?: string;
@@ -13,7 +13,13 @@ export function Modal({ title, className = "", open, children, footer, onClose }
   if (!open) return null;
 
   return (
-    <div className="modal" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div
+      className="modal"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+      onDragEnter={stopFileDrag}
+      onDragOver={stopFileDrag}
+      onDrop={stopFileDrag}
+    >
       <div className={`modal-card ${className}`}>
         <div className="modal-head">
           {title ? <h2>{title}</h2> : <span />}
@@ -26,4 +32,10 @@ export function Modal({ title, className = "", open, children, footer, onClose }
       </div>
     </div>
   );
+}
+
+function stopFileDrag(event: DragEvent<HTMLDivElement>) {
+  if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+  event.preventDefault();
+  event.stopPropagation();
 }

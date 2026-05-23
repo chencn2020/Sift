@@ -11,8 +11,8 @@ export function photoCounts(photos: PhotoSummary[]) {
 
 export function rejectReasons(photo: PhotoSummary): string[] {
   const reasons: string[] = [];
-  if (photo.sharpness < 0.55) reasons.push("模糊");
-  if (photo.eyesClosed) reasons.push("闭眼");
+  if (photo.analyzed && photo.sharpness < 0.55) reasons.push("模糊");
+  if (photo.analyzed && photo.eyesClosed) reasons.push("闭眼");
   if (photo.duplicateGroupId) reasons.push("重复");
   return reasons;
 }
@@ -27,6 +27,7 @@ export function planAiChanges(state: AppState): Array<{ photoId: number; state: 
       bursts.set(photo.burstId, [...(bursts.get(photo.burstId) ?? []), photo]);
     });
     bursts.forEach((items) => {
+      if (!items.some((photo) => photo.analyzed)) return;
       const best = [...items].sort((a, b) => b.bestInBurst - a.bestInBurst || b.sharpness - a.sharpness)[0];
       if (best) changes.set(best.id, "pick");
       items.filter((photo) => photo.id !== best?.id).forEach((photo) => changes.set(photo.id, "reject"));
@@ -34,11 +35,11 @@ export function planAiChanges(state: AppState): Array<{ photoId: number; state: 
   }
 
   if (state.aiRules.rejectEyesClosed) {
-    state.photos.filter((photo) => photo.eyesClosed).forEach((photo) => changes.set(photo.id, "reject"));
+    state.photos.filter((photo) => photo.analyzed && photo.eyesClosed).forEach((photo) => changes.set(photo.id, "reject"));
   }
 
   if (state.aiRules.rejectBlurry) {
-    state.photos.filter((photo) => photo.sharpness < 0.55).forEach((photo) => changes.set(photo.id, "reject"));
+    state.photos.filter((photo) => photo.analyzed && photo.sharpness < 0.55).forEach((photo) => changes.set(photo.id, "reject"));
   }
 
   if (state.aiRules.rejectDuplicates) {

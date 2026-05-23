@@ -7,12 +7,15 @@ interface LibrarySidebarProps {
   onCollectionChange: (collection: CollectionKey) => void;
   onPersonSelect: (personId: string | null) => void;
   onOpenPeople: () => void;
+  onOpenRegisterPerson: () => void;
 }
 
-export function LibrarySidebar({ state, t, onCollectionChange, onPersonSelect, onOpenPeople }: LibrarySidebarProps) {
+export function LibrarySidebar({ state, t, onCollectionChange, onPersonSelect, onOpenPeople, onOpenRegisterPerson }: LibrarySidebarProps) {
   const counts = photoCounts(state.photos);
   const registered = state.people.filter((person) => person.kind === "registered");
   const clusters = state.people.filter((person) => person.kind === "cluster");
+  const burstCount = new Set(state.photos.map((photo) => photo.burstId).filter(Boolean)).size;
+  const duplicateCount = new Set(state.photos.map((photo) => photo.duplicateGroupId).filter(Boolean)).size;
 
   return (
     <aside className="sidebar" id="sidebar">
@@ -46,27 +49,36 @@ export function LibrarySidebar({ state, t, onCollectionChange, onPersonSelect, o
       <div className="sb-section">
         <div className="sb-head">
           <span>{t("people")}</span>
-          <button className="sb-mini" onClick={onOpenPeople} title={t("people")}>
-            ›
-          </button>
+          <span className="sb-head-actions">
+            <button className="sb-mini" onClick={onOpenRegisterPerson} title={t("registerPortrait")}>
+              +
+            </button>
+            <button className="sb-mini" onClick={onOpenPeople} title={t("people")}>
+              ›
+            </button>
+          </span>
         </div>
-        {[...registered, ...clusters].map((person) => (
-          <button
-            className={`sb-person ${state.selectedPersonId === person.id ? "active" : ""}`}
-            key={person.id}
-            onClick={() => onPersonSelect(state.selectedPersonId === person.id ? null : person.id)}
-          >
-            <span className="avatar-dot" style={{ background: person.color }} />
-            <span>{person.name}</span>
-            <em>{person.count}</em>
-          </button>
-        ))}
+        {[...registered, ...clusters].length ? (
+          [...registered, ...clusters].map((person) => (
+            <button
+              className={`sb-person ${state.selectedPersonId === person.id ? "active" : ""}`}
+              key={person.id}
+              onClick={() => onPersonSelect(state.selectedPersonId === person.id ? null : person.id)}
+            >
+              <span className="avatar-dot" style={{ background: person.color }} />
+              <span>{person.name}</span>
+              <em>{person.count}</em>
+            </button>
+          ))
+        ) : (
+          <div className="sb-empty">{t("noPeopleYet")}</div>
+        )}
       </div>
 
       <div className="sb-section">
         <div className="sb-head">{t("stacks")}</div>
-        <SidebarItem label={t("bursts")} glyph="▤" count={12} onClick={() => onCollectionChange("smart-best")} />
-        <SidebarItem label={t("duplicates")} glyph="⫶" count={31} onClick={() => onCollectionChange("all")} />
+        <SidebarItem label={t("bursts")} glyph="▤" count={burstCount} onClick={() => onCollectionChange("smart-best")} />
+        <SidebarItem label={t("duplicates")} glyph="⫶" count={duplicateCount} onClick={() => onCollectionChange("all")} />
       </div>
     </aside>
   );

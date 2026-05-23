@@ -1,4 +1,7 @@
 import type { PersonSummary, PhotoSummary } from "../../app/types";
+import { formatBytes } from "../projects/imageMetadata";
+import { PhotoImage } from "./PhotoImage";
+import { cameraInfo } from "./photoInfo";
 
 interface InspectorProps {
   photo: PhotoSummary | null;
@@ -19,44 +22,68 @@ export function Inspector({ photo, people, t }: InspectorProps) {
   }
 
   const personLookup = new Map(people.map((person) => [person.id, person]));
+  const camera = cameraInfo(photo);
+  const cameraRows = [
+    { label: "Body", value: camera.body },
+    { label: "Lens", value: camera.lens },
+    { label: t("exposure"), value: camera.exposure }
+  ].filter((row) => row.value);
 
   return (
     <aside className="inspector" id="inspector">
       <div className="insp-content">
         <div className="insp-preview">
-          <div className="photo-art large">
-            <span>{photo.filename}</span>
-          </div>
+          <PhotoImage photo={photo} className="photo-art large" showName />
         </div>
 
+        {cameraRows.length ? (
+          <section className="insp-section">
+            <h3>Camera</h3>
+            {cameraRows.map((row) => (
+              <div className="meta-row" key={row.label}>
+                <span>{row.label}</span>
+                <b>{row.value}</b>
+              </div>
+            ))}
+          </section>
+        ) : null}
+
         <section className="insp-section">
-          <h3>Camera</h3>
+          <h3>{t("fileInfo")}</h3>
           <div className="meta-row">
-            <span>Body</span>
-            <b>{photo.camera.body}</b>
+            <span>{t("capturedAt")}</span>
+            <b>{photo.takenAt || "—"}</b>
           </div>
           <div className="meta-row">
-            <span>Lens</span>
-            <b>{photo.camera.lens}</b>
+            <span>{t("resolution")}</span>
+            <b>{photo.width && photo.height ? `${photo.width} × ${photo.height}` : "—"}</b>
           </div>
           <div className="meta-row">
-            <span>Exposure</span>
-            <b>
-              {photo.camera.aperture} · {photo.camera.shutter} · ISO {photo.camera.iso}
-            </b>
+            <span>{t("fileSize")}</span>
+            <b>{formatBytes(photo.sizeBytes)}</b>
+          </div>
+          <div className="meta-row">
+            <span>{t("format")}</span>
+            <b>{photo.format?.toUpperCase() || "—"}</b>
           </div>
         </section>
 
         <section className="insp-section">
           <h3>AI quality</h3>
-          <Bar label={t("sharp")} value={photo.sharpness} />
-          <Bar label="曝光" value={photo.exposure} />
-          <Bar label="噪点" value={photo.noise} />
-          <Bar label="微笑" value={photo.smile} />
-          <div className="meta-row">
-            <span>Eyes</span>
-            <b>{photo.eyesClosed ? "闭眼" : "睁眼"}</b>
-          </div>
+          {photo.analyzed ? (
+            <>
+              <Bar label={t("sharp")} value={photo.sharpness} />
+              <Bar label={t("exposure")} value={photo.exposure} />
+              <Bar label={t("noise")} value={photo.noise} />
+              <Bar label={t("smile")} value={photo.smile} />
+              <div className="meta-row">
+                <span>Eyes</span>
+                <b>{photo.eyesClosed ? t("eyesClosed") : t("eyesOpen")}</b>
+              </div>
+            </>
+          ) : (
+            <p className="hint">{t("notAnalyzed")}</p>
+          )}
         </section>
 
         <section className="insp-section">

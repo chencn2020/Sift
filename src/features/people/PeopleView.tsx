@@ -7,9 +7,10 @@ interface PeopleViewProps {
   onSelectPerson: (personId: string) => void;
   onSelectPhoto: (photoId: number) => void;
   onOpenExport: () => void;
+  onOpenRegisterPerson: () => void;
 }
 
-export function PeopleView({ state, t, onSelectPerson, onSelectPhoto, onOpenExport }: PeopleViewProps) {
+export function PeopleView({ state, t, onSelectPerson, onSelectPhoto, onOpenExport, onOpenRegisterPerson }: PeopleViewProps) {
   const selectedPerson = state.people.find((person) => person.id === state.selectedPersonId) ?? state.people[0];
   const matches = selectedPerson ? state.photos.filter((photo) => photo.people.includes(selectedPerson.id)) : [];
   const registered = state.people.filter((person) => person.kind === "registered");
@@ -25,43 +26,55 @@ export function PeopleView({ state, t, onSelectPerson, onSelectPhoto, onOpenExpo
             </h1>
             <p>{t("localOnly")}</p>
           </div>
-          <button className="btn-primary">+ 注册人物</button>
+          <button className="btn-primary" onClick={onOpenRegisterPerson}>
+            {t("registerNewPerson")}
+          </button>
         </div>
 
-        <div className="people-body">
-          <aside className="people-list">
-            <h2>{t("registeredPeople")}</h2>
-            <PersonGrid people={registered} selectedId={selectedPerson?.id} onSelectPerson={onSelectPerson} />
-            <h2>{t("detectedClusters")}</h2>
-            <PersonGrid people={clusters} selectedId={selectedPerson?.id} onSelectPerson={onSelectPerson} />
-          </aside>
+        {state.people.length ? (
+          <div className="people-body">
+            <aside className="people-list">
+              <h2>{t("registeredPeople")}</h2>
+              <PersonGrid people={registered} selectedId={selectedPerson?.id} onSelectPerson={onSelectPerson} />
+              <h2>{t("detectedClusters")}</h2>
+              <PersonGrid people={clusters} selectedId={selectedPerson?.id} onSelectPerson={onSelectPerson} />
+            </aside>
 
-          <main className="people-detail">
-            {selectedPerson ? (
-              <>
-                <div className="person-hero">
-                  <span className="person-avatar" style={{ background: selectedPerson.color }}>
-                    {selectedPerson.name.slice(0, 1)}
-                  </span>
-                  <div>
-                    <h2>{selectedPerson.name}</h2>
-                    <p>
-                      {matches.length} {t("photos")} · {selectedPerson.refs} refs
-                    </p>
+            <main className="people-detail">
+              {selectedPerson ? (
+                <>
+                  <div className="person-hero">
+                    <span className="person-avatar" style={{ background: selectedPerson.color }}>
+                      {selectedPerson.name.slice(0, 1)}
+                    </span>
+                    <div>
+                      <h2>{selectedPerson.name}</h2>
+                      <p>
+                        {matches.length} {t("photos")} · {selectedPerson.refs} refs
+                      </p>
+                    </div>
+                    <button className="btn-primary" onClick={onOpenExport}>
+                      {t("exportSelected")}
+                    </button>
                   </div>
-                  <button className="btn-primary" onClick={onOpenExport}>
-                    {t("exportSelected")}
-                  </button>
-                </div>
-                <div className="ppl-photos">
-                  {matches.map((photo) => (
-                    <PhotoCard key={photo.id} photo={photo} selected={photo.id === state.selectedPhotoId} onSelect={onSelectPhoto} />
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </main>
-        </div>
+                  <div className="ppl-photos">
+                    {matches.map((photo) => (
+                      <PhotoCard key={photo.id} photo={photo} selected={photo.id === state.selectedPhotoId} onSelect={onSelectPhoto} />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </main>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h2>{t("noPeopleYet")}</h2>
+            <p>{t("peopleAfterAnalysis")}</p>
+            <button className="btn-primary" onClick={onOpenRegisterPerson}>
+              {t("registerNewPerson")}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
