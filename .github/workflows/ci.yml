@@ -90,4 +90,10 @@ jobs:
       - name: Create GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" artifacts/**/* --repo "${GITHUB_REPOSITORY}" --draft --prerelease --title "${GITHUB_REF_NAME}" --notes "Early Sift desktop prerelease."
+        run: |
+          mapfile -t assets < <(find artifacts -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' \) -print)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets found."
+            exit 1
+          fi
+          gh release create "${GITHUB_REF_NAME}" "${assets[@]}" --repo "${GITHUB_REPOSITORY}" --draft --prerelease --title "${GITHUB_REF_NAME}" --notes "Early Sift desktop prerelease."
